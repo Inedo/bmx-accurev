@@ -33,7 +33,7 @@ namespace Inedo.BuildMasterExtensions.AccuRev
 
         public override void BindToForm(ProviderBase extension)
         {
-            EnsureChildControls();
+            this.EnsureChildControls();
 
             var accuwork = (AccuWorkIssueTrackingProvider)extension;
             this.ffpExePath.Text = accuwork.ExePath ?? string.Empty;
@@ -50,7 +50,7 @@ namespace Inedo.BuildMasterExtensions.AccuRev
         }
         public override ProviderBase CreateFromForm()
         {
-            EnsureChildControls();
+            this.EnsureChildControls();
 
             return new AccuWorkIssueTrackingProvider()
             {
@@ -71,7 +71,7 @@ namespace Inedo.BuildMasterExtensions.AccuRev
         {
             base.InitializeDefaultValues();
 
-            EnsureChildControls();
+            this.EnsureChildControls();
 
             this.txtIssueId.Text = "issueNum";
             this.txtRelease.Text = "targetRelease";
@@ -87,94 +87,92 @@ namespace Inedo.BuildMasterExtensions.AccuRev
         /// </summary>
         protected override void CreateChildControls()
         {
-            base.CreateChildControls();
-
-            this.ffpExePath = new SourceControlFileFolderPicker()
+            this.ffpExePath = new SourceControlFileFolderPicker
             {
                 ServerId = this.EditorContext.ServerId,
                 Required = true,
                 DisplayMode = SourceControlBrowser.DisplayModes.FoldersAndFiles
             };
 
-            this.txtUserName = new ValidatingTextBox()
+            this.txtUserName = new ValidatingTextBox
             {
                 Required = true,
                 Width = 300
             };
 
-            this.txtPassword = new PasswordTextBox()
+            this.txtPassword = new PasswordTextBox
             {
                 Width = 270
             };
 
-            this.txtDepot = new ValidatingTextBox()
+            this.txtDepot = new ValidatingTextBox
             {
                 Required = true,
                 Width = 300
             };
 
-            this.txtIssueId = new ValidatingTextBox()
+            this.txtIssueId = new ValidatingTextBox
             {
                 Required = true,
                 Width = 300
             };
 
-            this.txtRelease = new ValidatingTextBox()
+            this.txtRelease = new ValidatingTextBox
             {
                 Required = true,
                 Width = 300
             };
 
-            this.txtTitle = new ValidatingTextBox()
+            this.txtTitle = new ValidatingTextBox
             {
                 Required = true,
                 Width = 300
             };
 
-            this.txtDescription = new ValidatingTextBox()
+            this.txtDescription = new ValidatingTextBox
             {
                 Required = true,
                 Width = 300
             };
 
-            this.txtStatus = new ValidatingTextBox()
+            this.txtStatus = new ValidatingTextBox
             {
                 Required = true,
                 Width = 300
             };
 
-            this.txtClosedStatuses = new TextBox()
+            this.txtClosedStatuses = new TextBox
             {
                 Width = 300,
                 TextMode = TextBoxMode.MultiLine,
                 Rows = 3
             };
 
-            this.txtCategoryFilter = new TextBox()
+            this.txtCategoryFilter = new TextBox
             {
                 Width = 300
             };
 
-            CUtil.Add(this,
+            this.Controls.Add(
                 new FormFieldGroup(
                     "Executable File Location",
                     @"The location of the AccuRev command-line executable. On Windows, this is typically C:\Program Files\AccuRev\bin\accurev.exe.",
                     false,
                     new StandardFormField("Executable File Path:", this.ffpExePath)
-                    ),
+                ),
                 new FormFieldGroup(
                     "Authentication",
                     "The user name and password BuildMaster will use to log in to AccuRev.",
                     false,
                     new StandardFormField("User Name:", this.txtUserName),
                     new StandardFormField("Password:", this.txtPassword)
-                    ),
+                ),
                 new FormFieldGroup(
                     "Depot",
                     "The AccuRev Depot of the issue database to connect to.",
                     false,
                     new StandardFormField("Depot:", this.txtDepot)
-                    ),
+                ),
                 new FormFieldGroup(
                     "Required Fields",
                     "AccuWork issue field names as defined in the issue database schema.",
@@ -184,20 +182,20 @@ namespace Inedo.BuildMasterExtensions.AccuRev
                     new StandardFormField("Issue Title:", this.txtTitle),
                     new StandardFormField("Issue Description:", this.txtDescription),
                     new StandardFormField("Issue Status:", this.txtStatus)
-                    ),
+                ),
                 new FormFieldGroup(
                     "Closed Issue Statuses",
                     "Issue statuses which represent a 'closed' issue state (one per line).",
                     false,
                     new StandardFormField(string.Empty, this.txtClosedStatuses)
-                    ),
+                ),
                 new FormFieldGroup(
                     "Issue Category Field",
                     "The name of an AccuRev issue field that will be used to filter issues by category.",
                     false,
                     new StandardFormField("Category Field (blank for no filtering):", this.txtCategoryFilter)
-                    )
-                );
+                )
+            );
         }
     }
 }

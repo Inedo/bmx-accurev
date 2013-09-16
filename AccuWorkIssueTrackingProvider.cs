@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Text;
-using System.Threading;
 using System.Xml;
 using Inedo.BuildMaster;
 using Inedo.BuildMaster.Extensibility.Providers;
@@ -46,7 +44,7 @@ namespace Inedo.BuildMasterExtensions.AccuRev
                 if (string.IsNullOrEmpty(this.FilterCategory))
                     return new string[0];
 
-                EnsureSchema(false);
+                this.EnsureSchema(false);
 
                 return new[] { this.schema.CategoryName };
             }
@@ -117,7 +115,7 @@ namespace Inedo.BuildMasterExtensions.AccuRev
         /// <returns>
         /// Array of issues for the specified release.
         /// </returns>
-        public override Issue[] GetIssues(string releaseNumber)
+        public override IssueTrackerIssue[] GetIssues(string releaseNumber)
         {
             EnsureSchema(false);
 
@@ -154,7 +152,7 @@ namespace Inedo.BuildMasterExtensions.AccuRev
                     xmlWriter.WriteEndElement();
                 }
 
-                var issues = new List<AccuWorkIssue>();
+                var issues = new List<IssueTrackerIssue>();
                 var results = AccuRev("xml", "-l", queryFileName);
                 var issueElements = results.SelectNodes("//issue");
 
@@ -165,7 +163,7 @@ namespace Inedo.BuildMasterExtensions.AccuRev
                     var description = ReadFieldValue(issueElement, this.schema.DescriptionFieldId);
                     var status = ReadFieldValue(issueElement, this.schema.StatusFieldId);
 
-                    issues.Add(new AccuWorkIssue(id, status, title, description, releaseNumber));
+                    issues.Add(new IssueTrackerIssue(id, status, title, description, releaseNumber));
                 }
 
                 return issues.ToArray();
@@ -182,7 +180,7 @@ namespace Inedo.BuildMasterExtensions.AccuRev
         /// <returns>
         /// True if issue is closed; otherwise false.
         /// </returns>
-        public override bool IsIssueClosed(Issue issue)
+        public override bool IsIssueClosed(IssueTrackerIssue issue)
         {
             if (issue == null)
                 throw new ArgumentNullException("issue");
@@ -220,16 +218,16 @@ namespace Inedo.BuildMasterExtensions.AccuRev
         /// The nesting level (i.e. <see cref="CategoryBase.SubCategories"/>) can never be less than
         /// the length of <see cref="CategoryTypeNames"/>.
         /// </remarks>
-        public CategoryBase[] GetCategories()
+        public IssueTrackerCategory[] GetCategories()
         {
             if (string.IsNullOrEmpty(this.FilterCategory))
-                return new AccuWorkCategory[0];
+                return new IssueTrackerCategory[0];
 
             EnsureSchema(false);
 
-            var categories = new List<AccuWorkCategory>();
+            var categories = new List<IssueTrackerCategory>();
             foreach (var name in this.schema.ValidCategoryValues)
-                categories.Add(new AccuWorkCategory(name));
+                categories.Add(new IssueTrackerCategory(name, name));
 
             return categories.ToArray();
         }
@@ -291,49 +289,13 @@ namespace Inedo.BuildMasterExtensions.AccuRev
             foreach (var arg in args)
                 argBuffer.AppendFormat("\"{0}\" ", arg);
 
-            var startInfo = new ProcessStartInfo(this.ExePath, argBuffer.ToString())
-            {
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            };
+            var results = this.ExecuteCommandLine(this.ExePath, argBuffer.ToString(), workingDirectory);
+            if (results.ExitCode != 0)
+                throw new InvalidOperationException(string.Join(Environment.NewLine, results.Error));
 
-            if (!string.IsNullOrEmpty(workingDirectory))
-                startInfo.WorkingDirectory = workingDirectory;
+            var textReader = new StringReader(string.Join(string.Empty, results.Output));
 
-            var process = new Process()
-            {
-                StartInfo = startInfo
-            };
-
-            this.LogProcessExecution(startInfo);
-            process.Start();
-
-            var memoryStream = new MemoryStream();
-            var buffer = new byte[512];
-            int bytesRead;
-
-            while (!process.HasExited)
-            {
-                while ((bytesRead = process.StandardOutput.BaseStream.Read(buffer, 0, buffer.Length)) > 0)
-                {
-                    memoryStream.Write(buffer, 0, bytesRead);
-                }
-
-                Thread.Sleep(5);
-            }
-
-            while ((bytesRead = process.StandardOutput.BaseStream.Read(buffer, 0, buffer.Length)) > 0)
-            {
-                memoryStream.Write(buffer, 0, bytesRead);
-            }
-
-            memoryStream.Position = 0;
-
-            if (process.ExitCode != 0)
-                throw new InvalidOperationException(Encoding.UTF8.GetString(memoryStream.ToArray()));
-
-            var xmlReader = XmlReader.Create(memoryStream, new XmlReaderSettings() { ConformanceLevel = System.Xml.ConformanceLevel.Fragment });
+            var xmlReader = XmlReader.Create(textReader, new XmlReaderSettings { ConformanceLevel = System.Xml.ConformanceLevel.Fragment });
             var doc = new XmlDocument();
             doc.Load(xmlReader);
             return doc;
